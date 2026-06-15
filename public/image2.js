@@ -1,4 +1,6 @@
-const storageKey = "image2-vip-v2-config";
+const storageKey = "image2-vip-v3-config";
+const pollIntervalMs = 10_000;
+const maxPollMs = 20 * 60 * 1000;
 
 const els = {
   form: document.querySelector("#imageForm"),
@@ -13,6 +15,7 @@ const els = {
   saveConfigBtn: document.querySelector("#saveConfigBtn"),
   clearBtn: document.querySelector("#clearBtn"),
   generateBtn: document.querySelector("#generateBtn"),
+  refreshJobBtn: document.querySelector("#refreshJobBtn"),
   reloadImageBtn: document.querySelector("#reloadImageBtn"),
   openImageLink: document.querySelector("#openImageLink"),
   downloadImageLink: document.querySelector("#downloadImageLink"),
@@ -41,8 +44,12 @@ const sizeLabels = {
 };
 
 let timer = null;
+let pollTimer = null;
+let pollStartedAt = 0;
 let currentDataUrl = "";
 let currentDownloadName = "image2-result.png";
+let currentJobId = "";
+let currentStatusUrl = "";
 
 function apiEndpoint() {
   const configuredEndpoint = String(window.IMAGE2_API_ENDPOINT || "").trim();
@@ -50,6 +57,13 @@ function apiEndpoint() {
   return window.location.protocol === "file:"
     ? "http://localhost:5177/api/image2-generate"
     : "/api/image2-generate";
+}
+
+function statusEndpoint(jobId, statusUrl = "") {
+  if (statusUrl) return new URL(statusUrl, window.location.href).toString();
+  const url = new URL(apiEndpoint(), window.location.href);
+  url.searchParams.set("jobId", jobId);
+  return url.toString();
 }
 
 function setStatus(text, state = "") {
@@ -78,7 +92,7 @@ function startTimer() {
   els.timerLine.hidden = false;
   const tick = () => {
     const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-    els.timerLine.textContent = `已等待 ${elapsed} 秒，正在等待当前同步接口返回。`;
+    els.timerLine.textContent = `已等待 ${elapsed} 秒，页面正在查询后台任务结果。`;
   };
   tick();
   timer = setInterval(tick, 1000);
@@ -87,6 +101,11 @@ function startTimer() {
 function stopTimer() {
   if (timer) clearInterval(timer);
   timer = null;
+}
+
+function stopPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
 }
 
 function maskLargeValues(value) {
@@ -99,7 +118,7 @@ function maskLargeValues(value) {
       if (typeof item === "string" && (lower.includes("base64") || lower.includes("b64") || item.startsWith("data:image/"))) {
         return [key, `[image data omitted, ${item.length} chars]`];
       }
-      if (key === "originalUrl" && typeof item === "string") {
+      if ((key === "originalUrl" || key === "url") && typeof item === "string") {
         return [key, item.slice(0, 220) + (item.length > 220 ? "..." : "")];
       }
       return [key, maskLargeValues(item)];
@@ -162,13 +181,18 @@ function updateSizeOptions(preferredSize) {
 }
 
 function resetResult() {
+  stopPolling();
+  stopTimer();
   currentDataUrl = "";
   currentDownloadName = "image2-result.png";
+  currentJobId = "";
+  currentStatusUrl = "";
   els.imageStage.innerHTML = "<span>生成成功后，图片会显示在这里</span>";
   els.openImageLink.removeAttribute("href");
   els.downloadImageLink.removeAttribute("href");
   els.openImageLink.classList.add("disabled");
   els.downloadImageLink.classList.add("disabled");
+  els.refreshJobBtn.disabled = true;
   els.reloadImageBtn.disabled = true;
   setResponse({});
   clearSummary();
@@ -214,7 +238,7 @@ function reloadImage() {
 }
 
 function errorSummary(result, response) {
-  const status = result?.status || response?.status;
+  const status = result?.statusCode || result?.status || response?.status;
   const upstreamError = result?.data?.error || result?.error;
   const message = upstreamError?.message || result?.message || result?.raw || result?.statusText || response?.statusText || "";
 
@@ -225,7 +249,7 @@ function errorSummary(result, response) {
     return ["账号并发超限", "同一账号同时运行的请求过多，请等前面的任务结束后再试。"];
   }
   if (status === 524) {
-    return ["上游网关超时", "上游同步连接已结束。如果后台最终成功，需要供应商提供任务查询接口才能主动取回结果。"];
+    return ["Cloudflare 到上游超时", "后台任务已经跑起来，但 Cloudflare 调用上游约 126 秒后仍会收到 524。4K 长任务需要切到 Render/Railway/VPS 这类非 Cloudflare Node 后端。"];
   }
   if (status === 401 || status === 403) {
     return ["认证失败", "后端内置 Token 无效、过期，或没有该模型权限。"];
@@ -234,6 +258,89 @@ function errorSummary(result, response) {
     return ["请求失败 400", message || "上游拒绝了这次请求，请查看完整响应。"];
   }
   return [`请求失败${status ? ` ${status}` : ""}`, message || "接口返回失败，请查看完整响应。"];
+}
+
+function completeWithImage(result) {
+  renderImage(result.image.dataUrl, result.image.mimeType, els.outputFormat.value);
+  setStatus("生成成功", "ok");
+  setSummary("生成成功", "图片已经转换为页面可直接显示的 dataURL。", "ok");
+  stopPolling();
+  stopTimer();
+  els.refreshJobBtn.disabled = !currentJobId;
+}
+
+function failWithResult(result, response) {
+  const [title, text] = errorSummary(result, response);
+  setStatus(`失败 ${result.statusCode || result.status || response?.status || ""}`.trim(), "error");
+  setSummary(title, text, "error");
+  els.imageStage.innerHTML = "<span>接口返回失败，请查看响应内容</span>";
+  stopPolling();
+  stopTimer();
+}
+
+async function fetchJson(url, options) {
+  const response = await fetch(url, options);
+  const raw = await response.text();
+  let result;
+  try {
+    result = JSON.parse(raw);
+  } catch {
+    result = { ok: response.ok, status: response.status, statusText: response.statusText, raw };
+  }
+  return { response, result };
+}
+
+async function refreshJobStatus(manual = false) {
+  if (!currentJobId) {
+    setSummary("暂无任务", "当前没有可刷新的后台任务。", "warn");
+    return;
+  }
+
+  try {
+    const { response, result } = await fetchJson(statusEndpoint(currentJobId, currentStatusUrl));
+    setResponse(result);
+
+    if (!response.ok || result.status === "failed" || result.status === "not_found" || result.ok === false) {
+      failWithResult(result, response);
+      return;
+    }
+
+    if (result.image?.dataUrl) {
+      completeWithImage(result);
+      return;
+    }
+
+    const statusText = result.status === "processing" ? "后台生成中" : "任务排队中";
+    setStatus(statusText, "warn");
+    setSummary(
+      statusText,
+      manual ? "已主动查询一次，任务还没有返回图片；页面会继续自动刷新。" : "任务还没有返回图片，页面会每 10 秒自动查询一次。",
+      "warn",
+    );
+
+    if (Date.now() - pollStartedAt > maxPollMs) {
+      stopPolling();
+      setSummary("自动刷新已暂停", "已经自动查询 20 分钟。你可以点击“刷新任务状态”继续手动查询。", "warn");
+    }
+  } catch (error) {
+    setStatus("查询异常", "error");
+    setSummary("查询异常", error.message, "error");
+    setResponse({ ok: false, error: error.message, jobId: currentJobId });
+  }
+}
+
+function handleQueuedResult(result) {
+  currentJobId = result.jobId;
+  currentStatusUrl = result.statusUrl || "";
+  pollStartedAt = Date.now();
+  els.refreshJobBtn.disabled = false;
+  els.imageStage.innerHTML = "<span>任务已提交，后台正在生成，请保持页面打开</span>";
+  setStatus("任务已提交", "warn");
+  setSummary("后台生成中", "任务已经进入队列。页面会每 10 秒查询一次，也可以点击“刷新任务状态”主动查询。", "ok");
+  setResponse(result);
+  stopPolling();
+  pollTimer = setInterval(() => refreshJobStatus(false), pollIntervalMs);
+  setTimeout(() => refreshJobStatus(false), 1500);
 }
 
 async function generateImage(event) {
@@ -248,32 +355,32 @@ async function generateImage(event) {
 
   resetResult();
   els.generateBtn.disabled = true;
-  setStatus("生成中", "warn");
-  setSummary("同步等待中", "请求已发送。本地后端会等待上游返回，并把 URL/base64 统一转成页面可直接显示的 dataURL。", "ok");
+  setStatus("提交中", "warn");
+  setSummary("正在提交任务", "请求正在发送。Cloudflare 上会进入后台队列，本地 Node 模式会直接等待同步结果。", "ok");
   startTimer();
-  els.imageStage.innerHTML = "<span>正在生成，请保持页面打开</span>";
+  els.imageStage.innerHTML = "<span>正在提交任务</span>";
   setResponse({ request: { endpoint: apiEndpoint(), ...config, token: "[server-side]" } });
 
   try {
-    const response = await fetch(apiEndpoint(), {
+    const { response, result } = await fetchJson(apiEndpoint(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
     });
-    const raw = await response.text();
-    let result;
-    try {
-      result = JSON.parse(raw);
-    } catch {
-      result = { ok: response.ok, status: response.status, statusText: response.statusText, raw };
-    }
     setResponse(result);
 
-    if (!response.ok || !result.ok) {
-      const [title, text] = errorSummary(result, response);
-      setStatus(`失败 ${result.status || response.status}`, "error");
-      setSummary(title, text, "error");
-      els.imageStage.innerHTML = "<span>接口返回失败，请查看响应内容</span>";
+    if (!response.ok && !result.queued) {
+      failWithResult(result, response);
+      return;
+    }
+
+    if (result.queued || (result.jobId && !result.image?.dataUrl)) {
+      handleQueuedResult(result);
+      return;
+    }
+
+    if (!result.ok) {
+      failWithResult(result, response);
       return;
     }
 
@@ -281,23 +388,22 @@ async function generateImage(event) {
       setStatus("无图片", "error");
       setSummary(
         "没有拿到可显示图片",
-        result.imageError || "接口返回成功，但本地后端没有从响应里提取到 URL/base64 图片数据。",
+        result.imageError || "接口返回成功，但后端没有从响应里提取到 URL/base64 图片数据。",
         "error",
       );
-      els.imageStage.innerHTML = "<span>接口返回成功，但没有找到可显示图片</span>";
+      els.imageStage.innerHTML = "<span>接口返回成功，但没有找到可显示的图片</span>";
+      stopTimer();
       return;
     }
 
-    renderImage(result.image.dataUrl, result.image.mimeType, config.output_format);
-    setStatus("生成成功", "ok");
-    setSummary("生成成功", "图片已由本地后端规范化为 dataURL，页面已直接渲染。", "ok");
+    completeWithImage(result);
   } catch (error) {
     setStatus("请求异常", "error");
     setSummary("请求异常", error.message, "error");
     els.imageStage.innerHTML = "<span>请求异常，请查看响应内容</span>";
     setResponse({ ok: false, error: error.message });
-  } finally {
     stopTimer();
+  } finally {
     els.generateBtn.disabled = false;
   }
 }
@@ -307,4 +413,5 @@ els.form.addEventListener("submit", generateImage);
 els.model.addEventListener("change", () => updateSizeOptions());
 els.saveConfigBtn.addEventListener("click", saveConfig);
 els.clearBtn.addEventListener("click", resetResult);
+els.refreshJobBtn.addEventListener("click", () => refreshJobStatus(true));
 els.reloadImageBtn.addEventListener("click", reloadImage);
