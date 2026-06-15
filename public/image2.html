@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image2 VIP 4K 生成测试页</title>
+    <link rel="stylesheet" href="./image2.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <div>
+          <p class="eyebrow">gpt-image-2-vip</p>
+          <h1>Image2 VIP 4K 生成测试页</h1>
+        </div>
+        <a class="link-button" href="./index.html">返回数字人测试台</a>
+      </header>
+
+      <section class="workspace">
+        <form class="panel controls" id="imageForm">
+          <div class="panel-heading">
+            <h2>请求参数</h2>
+            <button class="ghost" type="button" id="saveConfigBtn">保存配置</button>
+          </div>
+
+          <label>
+            API 地址
+            <input id="baseUrl" value="https://api.5spiritual.com" autocomplete="off" />
+          </label>
+
+          <label>
+            提示词
+            <textarea id="prompt" rows="10" maxlength="32000" placeholder="请输入要生成的图像描述" required></textarea>
+          </label>
+
+          <section class="notice">
+            <div>
+              <strong>当前接口</strong>
+              <span>POST /v1/images/generations</span>
+            </div>
+            <p>Token 已内置在本地后端。上游返回 URL 时，本地后端会先下载图片并转成 dataURL，页面不再直接加载签名外链。</p>
+          </section>
+
+          <div class="field-grid">
+            <label>
+              模型
+              <select id="model">
+                <option value="gpt-image-2-vip" selected>gpt-image-2-vip</option>
+                <option value="gpt-image-2">gpt-image-2</option>
+                <option value="gpt-image-1">gpt-image-1</option>
+              </select>
+            </label>
+
+            <label>
+              分辨率
+              <select id="size">
+                <option value="3840x2160" selected>3840x2160 (4K)</option>
+                <option value="1536x864">1536x864</option>
+                <option value="1536x1024">1536x1024</option>
+                <option value="1024x1536">1024x1536</option>
+                <option value="1024x1024">1024x1024</option>
+                <option value="auto">auto</option>
+              </select>
+            </label>
+
+            <label>
+              输出格式
+              <select id="outputFormat">
+                <option value="png" selected>png</option>
+                <option value="jpeg">jpeg</option>
+                <option value="webp">webp</option>
+              </select>
+            </label>
+
+            <label>
+              背景
+              <select id="background">
+                <option value="opaque" selected>opaque</option>
+                <option value="transparent">transparent</option>
+                <option value="auto">auto</option>
+              </select>
+            </label>
+
+            <label>
+              审核
+              <select id="moderation">
+                <option value="auto" selected>auto</option>
+                <option value="low">low</option>
+              </select>
+            </label>
+
+            <label>
+              质量
+              <select id="quality">
+                <option value="high" selected>high</option>
+                <option value="auto">auto</option>
+                <option value="medium">medium</option>
+                <option value="low">low</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button class="primary" type="submit" id="generateBtn">生成图像</button>
+            <button type="button" id="clearBtn">清空结果</button>
+          </div>
+        </form>
+
+        <section class="panel result">
+          <div class="panel-heading">
+            <h2>生成结果</h2>
+            <div class="status" id="statusPill">等待输入</div>
+          </div>
+
+          <section class="summary" id="summaryBox" hidden>
+            <strong id="summaryTitle"></strong>
+            <p id="summaryText"></p>
+            <p class="timer" id="timerLine" hidden></p>
+          </section>
+
+          <div class="stage" id="imageStage">
+            <span>生成成功后，图片会显示在这里</span>
+          </div>
+
+          <div class="result-actions">
+            <button type="button" id="reloadImageBtn" disabled>重新载入图片</button>
+            <a class="link-button disabled" id="openImageLink" target="_blank" rel="noreferrer">打开图片</a>
+            <a class="link-button disabled" id="downloadImageLink" download="image2-result.png">下载图片</a>
+          </div>
+
+          <details class="response" open>
+            <summary>接口响应</summary>
+            <pre id="responseOutput">{}</pre>
+          </details>
+        </section>
+      </section>
+    </main>
+
+    <script src="./image2.js"></script>
+  </body>
+</html>
