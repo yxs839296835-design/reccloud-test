@@ -27,6 +27,8 @@ The token is intentionally not committed to this repository. The browser never r
 
 This project requires a Node.js runtime because GitHub Pages cannot safely store the API token or run the proxy endpoint.
 
+For long-running 4K image generation, use Cloudflare Pages only for the frontend and deploy the Node API proxy to a long-running web service such as Render or Railway. Cloudflare Pages Functions are not recommended for the image generation proxy because long synchronous requests can hit edge/runtime limits.
+
 Recommended deploy targets:
 
 - Render Web Service
@@ -39,3 +41,27 @@ Start command:
 ```text
 npm start
 ```
+
+## Recommended Production Layout
+
+```text
+Cloudflare Pages
+  Frontend + password gate
+
+Render/Railway/VPS
+  /api/image2-generate long-running Node proxy
+```
+
+After deploying the Node proxy, edit:
+
+```text
+public/runtime-config.js
+```
+
+Set:
+
+```js
+window.IMAGE2_API_ENDPOINT = "https://your-node-api.example.com/api/image2-generate";
+```
+
+Then redeploy Cloudflare Pages.

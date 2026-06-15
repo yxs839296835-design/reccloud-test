@@ -1,0 +1,1 @@
+window.IMAGE2_API_ENDPOINT = "";

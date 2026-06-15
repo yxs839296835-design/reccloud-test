@@ -45,6 +45,8 @@ let currentDataUrl = "";
 let currentDownloadName = "image2-result.png";
 
 function apiEndpoint() {
+  const configuredEndpoint = String(window.IMAGE2_API_ENDPOINT || "").trim();
+  if (configuredEndpoint) return configuredEndpoint;
   return window.location.protocol === "file:"
     ? "http://localhost:5177/api/image2-generate"
     : "/api/image2-generate";
