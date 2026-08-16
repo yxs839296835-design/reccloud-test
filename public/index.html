@@ -335,8 +335,8 @@
 
           <label>
             按量 Key
-            <input id="meteredApiKey" type="password" value="" placeholder="openai/gpt-image-2 和 vip 使用" autocomplete="off" />
-            <span>用于 <code>openai/gpt-image-2</code> 和 <code>openai/gpt-image-2-vip</code>。</span>
+            <input id="meteredApiKey" type="password" value="" placeholder="openai/gpt-image-2-vip 使用" autocomplete="off" />
+            <span>用于 <code>openai/gpt-image-2-vip</code>。</span>
           </label>
 
           <label>
@@ -364,16 +364,14 @@
             <label>
               模型
               <select id="model">
-                
-                <option value="openai/gpt-image-2">openai/gpt-image-2（按量计费 / 1K）</option>
-                <option value="openai/gpt-image-2-vip">openai/gpt-image-2-vip（按量计费 / 4K）</option>
+                <option value="openai/gpt-image-2-vip">openai/gpt-image-2-vip（按量计费 / 1K）</option>
               </select>
-              <span id="modelHint">选择模型后页面会自动使用按量 Key。</span>
+              <span id="modelHint">仅保留 openai/gpt-image-2-vip，默认使用 1K。</span>
             </label>
 
             <label>
               实际请求 model
-              <input id="requestModel" value="openai/gpt-image-2" autocomplete="off" />
+              <input id="requestModel" value="openai/gpt-image-2-vip" autocomplete="off" />
               <span>默认跟随上方选择，高级测试时可手动改。</span>
             </label>
 
@@ -385,8 +383,6 @@
                 <option value="1024x1536">1024x1536</option>
                 <option value="2048x1152">2048x1152</option>
                 <option value="2048x2048">2048x2048</option>
-                <option value="3840x2160">3840x2160 (4K)</option>
-                <option value="2160x3840">2160x3840 (4K)</option>
                 <option value="auto">auto</option>
               </select>
             </label>
@@ -433,8 +429,8 @@
           </div>
 
           <section class="notice">
-            <strong>两个 Image2 模型</strong>
-            <p><code>openai/gpt-image-2</code> 和 <code>openai/gpt-image-2-vip</code> 使用按量 Key。页面会按模型自动选择 Authorization。</p>
+            <strong>Image2 VIP 模型</strong>
+            <p><code>openai/gpt-image-2-vip</code> 使用按量 Key。页面会按模型自动选择 Authorization。</p>
           </section>
 
           <div class="actions">
@@ -519,26 +515,12 @@
       let referenceFile = null;
 
       const modelHints = {
-        "openai/gpt-image-2": "按量计费 OpenAI Image-2，标签 1K。将使用按量 Key。",
-        "openai/gpt-image-2-vip": "按量计费 Image-2 VIP，标签 4K / 高并发。将使用按量 Key。",
+        "openai/gpt-image-2-vip": "按量计费 Image-2 VIP，默认 1K。将使用按量 Key。",
       };
       function updateModelHint() {
         const model = els.model.value;
         document.querySelector("#modelHint").textContent = modelHints[model] || `当前 model 参数：${model}`;
         els.requestModel.value = model;
-
-        if (model === "openai/gpt-image-2-vip") {
-          els.size.value = "3840x2160";
-          els.quality.value = "high";
-          els.outputFormat.value = "png";
-          els.background.value = "opaque";
-          els.moderation.value = "auto";
-          return;
-        }
-
-        if (els.size.value === "3840x2160" || els.size.value === "2160x3840") {
-          els.size.value = "1024x1024";
-        }
       }
       function setStatus(text, state = "") {
         els.statusPill.textContent = text;
@@ -717,8 +699,8 @@
         } catch {
           localStorage.removeItem(storageKey);
         }
-        if (!["openai/gpt-image-2", "openai/gpt-image-2-vip"].includes(els.model.value)) {
-          els.model.value = "openai/gpt-image-2";
+        if (els.model.value !== "openai/gpt-image-2-vip") {
+          els.model.value = "openai/gpt-image-2-vip";
         }
         updateModelHint();
       }
