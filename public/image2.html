@@ -3,62 +3,390 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image2 VIP 4K 生成测试页</title>
-    <link rel="stylesheet" href="./image2.css" />
+    <title>Image2 生成测试</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #162033;
+        --muted: #657186;
+        --line: #d7dfeb;
+        --paper: #f3f7fb;
+        --panel: #fff;
+        --accent: #0f766e;
+        --accent-dark: #115e59;
+        --accent-soft: #d9f3ee;
+        --danger: #b42318;
+        --danger-soft: #fff1f0;
+        --warn: #9a5b00;
+        --warn-soft: #fff7df;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+      }
+
+      button, input, select, textarea { font: inherit; }
+
+      button, a.button {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 14px;
+        color: var(--ink);
+        background: #fff;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        color: #fff;
+        background: var(--accent);
+      }
+
+      button.primary:hover { background: var(--accent-dark); }
+      button:disabled, a.disabled { pointer-events: none; opacity: .55; }
+
+      .page {
+        width: min(1480px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 24px 0 36px;
+      }
+
+      header, .heading, .actions, .result-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      header { margin-bottom: 18px; align-items: flex-end; }
+      h1, h2 { margin: 0; letter-spacing: 0; }
+      h1 { font-size: 30px; }
+      h2 { font-size: 18px; }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 440px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+        background: var(--panel);
+        box-shadow: 0 20px 60px rgba(23, 32, 51, .10);
+      }
+
+      .controls {
+        position: sticky;
+        top: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      label span, .fineprint {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.45;
+      }
+
+      input, select, textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 11px;
+        color: var(--ink);
+        background: #fff;
+        outline: none;
+      }
+
+      input:focus, select:focus, textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, .16);
+      }
+
+      textarea {
+        min-height: 220px;
+        line-height: 1.55;
+        resize: vertical;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .notice, .summary {
+        border: 1px solid #c7dfe5;
+        border-radius: 8px;
+        padding: 12px;
+        background: #f5fbfb;
+      }
+
+      .notice p, .summary p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .summary { margin-bottom: 12px; }
+      .summary.ok { border-color: #8fd7c5; background: var(--accent-soft); }
+      .summary.warn { border-color: #f0ca82; background: var(--warn-soft); }
+      .summary.error { border-color: #f0aaa4; background: var(--danger-soft); }
+      .summary.error strong { color: var(--danger); }
+
+      .status {
+        min-width: 110px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 7px 13px;
+        color: var(--muted);
+        text-align: center;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .status.ok { border-color: #8fd7c5; color: var(--accent-dark); background: var(--accent-soft); }
+      .status.warn { border-color: #f0ca82; color: var(--warn); background: var(--warn-soft); }
+      .status.error { border-color: #f0aaa4; color: var(--danger); background: var(--danger-soft); }
+
+      .timer {
+        color: var(--accent-dark) !important;
+        font-weight: 800;
+      }
+
+      .stage {
+        display: grid;
+        place-items: center;
+        min-height: 620px;
+        overflow: hidden;
+        border: 1px dashed #b7c3d2;
+        border-radius: 8px;
+        color: var(--muted);
+        background:
+          linear-gradient(45deg, #eef2f7 25%, transparent 25%),
+          linear-gradient(-45deg, #eef2f7 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #eef2f7 75%),
+          linear-gradient(-45deg, transparent 75%, #eef2f7 75%);
+        background-color: #fff;
+        background-position: 0 0, 0 14px, 14px -14px, -14px 0;
+        background-size: 28px 28px;
+        text-align: center;
+      }
+
+      .stage img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: 72vh;
+        object-fit: contain;
+        background: #fff;
+      }
+
+      .actions, .result-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .result-actions { margin: 14px 0; }
+
+      .upload-zone {
+        display: grid;
+        gap: 10px;
+        border: 1px dashed #adc0d4;
+        border-radius: 8px;
+        padding: 12px;
+        color: var(--muted);
+        background: #f8fafc;
+      }
+
+      .upload-zone:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, .16);
+        outline: none;
+      }
+
+      .upload-zone.dragging {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .upload-zone input {
+        padding: 8px;
+        background: #fff;
+      }
+
+      .upload-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .reference-preview {
+        display: none;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+      }
+
+      .reference-preview.visible {
+        display: grid;
+      }
+
+      .reference-preview img {
+        width: 92px;
+        height: 92px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        object-fit: contain;
+        background: #fff;
+      }
+
+      .reference-preview p {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      pre {
+        max-height: 360px;
+        overflow: auto;
+        margin: 12px 0 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        color: #223044;
+        background: #f8fafc;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 980px) {
+        .workspace { grid-template-columns: 1fr; }
+        .controls { position: static; }
+      }
+
+      @media (max-width: 640px) {
+        .page { width: min(100vw - 20px, 1480px); }
+        header, .heading { align-items: flex-start; flex-direction: column; }
+        .grid { grid-template-columns: 1fr; }
+        .stage { min-height: 380px; }
+      }
+    </style>
   </head>
   <body>
     <main class="page">
-      <header class="header">
+      <header>
         <div>
-          <p class="eyebrow">gpt-image-2-vip</p>
-          <h1>Image2 VIP 4K 生成测试页</h1>
+          <p class="eyebrow">Image2 / OpenAI native format</p>
+          <h1>Image2 生成测试</h1>
         </div>
-        <a class="link-button" href="./index.html">返回数字人测试台</a>
+        <div class="status" id="statusPill">等待输入</div>
       </header>
 
       <section class="workspace">
         <form class="panel controls" id="imageForm">
-          <div class="panel-heading">
+          <div class="heading">
             <h2>请求参数</h2>
-            <button class="ghost" type="button" id="saveConfigBtn">保存配置</button>
+            <button type="button" id="saveBtn">保存配置</button>
           </div>
 
           <label>
-            API 地址
+            Base URL
             <input id="baseUrl" value="https://api.5spiritual.com" autocomplete="off" />
+            <span>文生图请求 /v1/images/generations；上传参考图后请求 /v1/images/edits。不要加尾斜杠。</span>
+          </label>
+
+          
+
+          <label>
+            按量 Key
+            <input id="meteredApiKey" type="password" value="" placeholder="openai/gpt-image-2 和 vip 使用" autocomplete="off" />
+            <span>用于 <code>openai/gpt-image-2</code> 和 <code>openai/gpt-image-2-vip</code>。</span>
           </label>
 
           <label>
-            提示词
-            <textarea id="prompt" rows="10" maxlength="32000" placeholder="请输入要生成的图像描述" required></textarea>
+            生图文本
+            <textarea id="prompt" maxlength="32000" placeholder="请输入要生成的图片描述" required></textarea>
           </label>
 
-          <section class="notice">
-            <div>
-              <strong>当前接口</strong>
-              <span>POST /v1/images/generations</span>
+          <section class="upload-zone" id="uploadZone" tabindex="0">
+            <strong>参考图片（可选，图生图）</strong>
+            <input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp,image/*" />
+            <div class="upload-actions">
+              <button type="button" id="pasteReferenceBtn">粘贴剪贴板图片</button>
             </div>
-            <p>Token 已内置在本地后端。上游返回 URL 时，本地后端会先下载图片并转成 dataURL，页面不再直接加载签名外链。</p>
+            <span>可以点击选择图片、拖入图片，也可以复制截图/图片后在页面任意位置按 Ctrl+V 粘贴。上传参考图后会自动走 <code>/v1/images/edits</code>。</span>
+            <div class="reference-preview" id="referencePreview">
+              <img id="referenceImage" alt="参考图预览" />
+              <div>
+                <p id="referenceMeta"></p>
+                <button type="button" id="clearReferenceBtn">移除参考图</button>
+              </div>
+            </div>
           </section>
 
-          <div class="field-grid">
+          <div class="grid">
             <label>
               模型
               <select id="model">
-                <option value="gpt-image-2-vip" selected>gpt-image-2-vip</option>
-                <option value="gpt-image-2">gpt-image-2</option>
-                <option value="gpt-image-1">gpt-image-1</option>
+                
+                <option value="openai/gpt-image-2">openai/gpt-image-2（按量计费 / 1K）</option>
+                <option value="openai/gpt-image-2-vip">openai/gpt-image-2-vip（按量计费 / 4K）</option>
               </select>
+              <span id="modelHint">选择模型后页面会自动使用按量 Key。</span>
+            </label>
+
+            <label>
+              实际请求 model
+              <input id="requestModel" value="openai/gpt-image-2" autocomplete="off" />
+              <span>默认跟随上方选择，高级测试时可手动改。</span>
             </label>
 
             <label>
               分辨率
               <select id="size">
-                <option value="3840x2160" selected>3840x2160 (4K)</option>
-                <option value="1536x864">1536x864</option>
+                <option value="1024x1024" selected>1024x1024</option>
                 <option value="1536x1024">1536x1024</option>
                 <option value="1024x1536">1024x1536</option>
-                <option value="1024x1024">1024x1024</option>
+                <option value="2048x1152">2048x1152</option>
+                <option value="2048x2048">2048x2048</option>
+                <option value="3840x2160">3840x2160 (4K)</option>
+                <option value="2160x3840">2160x3840 (4K)</option>
                 <option value="auto">auto</option>
               </select>
             </label>
@@ -66,6 +394,7 @@
             <label>
               输出格式
               <select id="outputFormat">
+                <option value="">不传</option>
                 <option value="png" selected>png</option>
                 <option value="jpeg">jpeg</option>
                 <option value="webp">webp</option>
@@ -75,6 +404,7 @@
             <label>
               背景
               <select id="background">
+                <option value="">不传</option>
                 <option value="opaque" selected>opaque</option>
                 <option value="transparent">transparent</option>
                 <option value="auto">auto</option>
@@ -84,6 +414,7 @@
             <label>
               审核
               <select id="moderation">
+                <option value="">不传</option>
                 <option value="auto" selected>auto</option>
                 <option value="low">low</option>
               </select>
@@ -92,24 +423,32 @@
             <label>
               质量
               <select id="quality">
-                <option value="high" selected>high</option>
-                <option value="auto">auto</option>
+                <option value="">不传</option>
+                <option value="high">high</option>
                 <option value="medium">medium</option>
                 <option value="low">low</option>
+                <option value="auto">auto</option>
               </select>
             </label>
           </div>
 
+          <section class="notice">
+            <strong>两个 Image2 模型</strong>
+            <p><code>openai/gpt-image-2</code> 和 <code>openai/gpt-image-2-vip</code> 使用按量 Key。页面会按模型自动选择 Authorization。</p>
+          </section>
+
           <div class="actions">
             <button class="primary" type="submit" id="generateBtn">生成图像</button>
+            <button type="button" id="cancelBtn" disabled>取消请求</button>
             <button type="button" id="clearBtn">清空结果</button>
           </div>
+
+          <p class="fineprint">本页面最大等待 600 秒，600 秒内没有结果就按接口失败处理。</p>
         </form>
 
-        <section class="panel result">
-          <div class="panel-heading">
+        <section class="panel">
+          <div class="heading">
             <h2>生成结果</h2>
-            <div class="status" id="statusPill">等待输入</div>
           </div>
 
           <section class="summary" id="summaryBox" hidden>
@@ -123,13 +462,11 @@
           </div>
 
           <div class="result-actions">
-            <button type="button" id="refreshJobBtn" disabled>刷新任务状态</button>
-            <button type="button" id="reloadImageBtn" disabled>重新载入图片</button>
-            <a class="link-button disabled" id="openImageLink" target="_blank" rel="noreferrer">打开图片</a>
-            <a class="link-button disabled" id="downloadImageLink" download="image2-result.png">下载图片</a>
+            <a class="button disabled" id="openImageLink" target="_blank" rel="noreferrer">打开图片</a>
+            <a class="button disabled" id="downloadImageLink" download="image2-result.png">下载图片</a>
           </div>
 
-          <details class="response" open>
+          <details open>
             <summary>接口响应</summary>
             <pre id="responseOutput">{}</pre>
           </details>
@@ -137,7 +474,506 @@
       </section>
     </main>
 
-    <script src="./runtime-config.js"></script>
-    <script src="./image2.js"></script>
+    <script>
+      const storageKey = "image2-working-config";
+      const maxTimeoutMs = 600000;
+
+      const els = {
+        form: document.querySelector("#imageForm"),
+        baseUrl: document.querySelector("#baseUrl"),
+
+        meteredApiKey: document.querySelector("#meteredApiKey"),
+        prompt: document.querySelector("#prompt"),
+        model: document.querySelector("#model"),
+        requestModel: document.querySelector("#requestModel"),
+        referenceInput: document.querySelector("#referenceInput"),
+        uploadZone: document.querySelector("#uploadZone"),
+        referencePreview: document.querySelector("#referencePreview"),
+        referenceImage: document.querySelector("#referenceImage"),
+        referenceMeta: document.querySelector("#referenceMeta"),
+        pasteReferenceBtn: document.querySelector("#pasteReferenceBtn"),
+        clearReferenceBtn: document.querySelector("#clearReferenceBtn"),
+        size: document.querySelector("#size"),
+        outputFormat: document.querySelector("#outputFormat"),
+        background: document.querySelector("#background"),
+        moderation: document.querySelector("#moderation"),
+        quality: document.querySelector("#quality"),
+        saveBtn: document.querySelector("#saveBtn"),
+        generateBtn: document.querySelector("#generateBtn"),
+        cancelBtn: document.querySelector("#cancelBtn"),
+        clearBtn: document.querySelector("#clearBtn"),
+        statusPill: document.querySelector("#statusPill"),
+        summaryBox: document.querySelector("#summaryBox"),
+        summaryTitle: document.querySelector("#summaryTitle"),
+        summaryText: document.querySelector("#summaryText"),
+        timerLine: document.querySelector("#timerLine"),
+        imageStage: document.querySelector("#imageStage"),
+        openImageLink: document.querySelector("#openImageLink"),
+        downloadImageLink: document.querySelector("#downloadImageLink"),
+        responseOutput: document.querySelector("#responseOutput"),
+      };
+
+      let controller = null;
+      let timer = null;
+      let timedOut = false;
+      let referenceFile = null;
+
+      const modelHints = {
+        "openai/gpt-image-2": "按量计费 OpenAI Image-2，标签 1K。将使用按量 Key。",
+        "openai/gpt-image-2-vip": "按量计费 Image-2 VIP，标签 4K / 高并发。将使用按量 Key。",
+      };
+      function updateModelHint() {
+        const model = els.model.value;
+        document.querySelector("#modelHint").textContent = modelHints[model] || `当前 model 参数：${model}`;
+        els.requestModel.value = model;
+
+        if (model === "openai/gpt-image-2-vip") {
+          els.size.value = "3840x2160";
+          els.quality.value = "high";
+          els.outputFormat.value = "png";
+          els.background.value = "opaque";
+          els.moderation.value = "auto";
+          return;
+        }
+
+        if (els.size.value === "3840x2160" || els.size.value === "2160x3840") {
+          els.size.value = "1024x1024";
+        }
+      }
+      function setStatus(text, state = "") {
+        els.statusPill.textContent = text;
+        els.statusPill.className = `status${state ? ` ${state}` : ""}`;
+      }
+
+      function setSummary(title, text, state = "") {
+        els.summaryBox.hidden = false;
+        els.summaryBox.className = `summary${state ? ` ${state}` : ""}`;
+        els.summaryTitle.textContent = title;
+        els.summaryText.textContent = text;
+      }
+
+      function clearSummary() {
+        els.summaryBox.hidden = true;
+        els.summaryTitle.textContent = "";
+        els.summaryText.textContent = "";
+        els.timerLine.hidden = true;
+        els.timerLine.textContent = "";
+      }
+
+      function startTimer(startedAt) {
+        els.timerLine.hidden = false;
+        const tick = () => {
+          const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+          els.timerLine.textContent = `已等待 ${elapsed} 秒，最多等待 600 秒。`;
+        };
+        tick();
+        timer = setInterval(tick, 1000);
+      }
+
+      function stopTimer() {
+        if (timer) clearInterval(timer);
+        timer = null;
+      }
+
+      function targetUrl() {
+        const path = referenceFile ? "/v1/images/edits" : "/v1/images/generations";
+        return `${els.baseUrl.value.trim().replace(/\/+$/, "")}${path}`;
+      }
+
+      function configFromForm() {
+        const model = els.requestModel.value.trim();
+        return {
+          baseUrl: els.baseUrl.value.trim().replace(/\/+$/, ""),
+          apiKey: els.meteredApiKey.value.trim(),
+          prompt: els.prompt.value.trim(),
+          model,
+          size: els.size.value,
+          output_format: els.outputFormat.value,
+          background: els.background.value,
+          moderation: els.moderation.value,
+          quality: els.quality.value,
+        };
+      }
+      function buildBody(config) {
+        const body = {
+          model: config.model,
+          prompt: config.prompt,
+          n: 1,
+          size: config.size,
+        };
+        if (config.background) body.background = config.background;
+        if (config.moderation) body.moderation = config.moderation;
+        if (config.quality) body.quality = config.quality;
+        if (config.output_format) body.output_format = config.output_format;
+        return body;
+      }
+
+      function buildFormData(config) {
+        const formData = new FormData();
+        formData.append("model", config.model);
+        formData.append("prompt", config.prompt);
+        formData.append("n", "1");
+        formData.append("size", config.size);
+        if (config.background) formData.append("background", config.background);
+        if (config.moderation) formData.append("moderation", config.moderation);
+        if (config.quality) formData.append("quality", config.quality);
+        if (config.output_format) formData.append("output_format", config.output_format);
+        formData.append("image", referenceFile, referenceFile.name || "reference.png");
+        return formData;
+      }
+
+      function fileSizeText(bytes) {
+        if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+        if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${bytes} B`;
+      }
+
+      function setReferenceFile(file) {
+        if (!file || !file.type.startsWith("image/")) {
+          setStatus("图片无效", "error");
+          setSummary("图片无效", "请选择或粘贴 PNG、JPEG、WebP 等图片文件。", "error");
+          return;
+        }
+
+        referenceFile = file;
+        const reader = new FileReader();
+        reader.onload = () => {
+          els.referenceImage.src = reader.result;
+          els.referenceMeta.textContent = `${file.name || "粘贴图片"} · ${file.type || "image"} · ${fileSizeText(file.size)}`;
+          els.referencePreview.classList.add("visible");
+          setStatus("已载入参考图", "ok");
+          setSummary("图生图模式", "已载入参考图片，生成时会调用 /v1/images/edits。", "ok");
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function clearReferenceFile() {
+        referenceFile = null;
+        els.referenceInput.value = "";
+        els.referenceImage.removeAttribute("src");
+        els.referenceMeta.textContent = "";
+        els.referencePreview.classList.remove("visible");
+        setStatus("文生图模式");
+        setSummary("已移除参考图", "当前会调用 /v1/images/generations。", "ok");
+      }
+
+      function imageFileFromClipboard(event) {
+        const item = Array.from(event.clipboardData?.items || []).find((entry) => entry.type.startsWith("image/"));
+        if (!item) return null;
+        const file = item.getAsFile();
+        if (!file) return null;
+        const extension = file.type.split("/").pop() || "png";
+        return new File([file], `pasted-reference-${Date.now()}.${extension}`, { type: file.type || "image/png" });
+      }
+
+      function handleImagePaste(event) {
+        const file = imageFileFromClipboard(event);
+        if (!file) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setReferenceFile(file);
+      }
+
+      async function readReferenceFromClipboard() {
+        if (!navigator.clipboard?.read) {
+          setStatus("不支持读取", "error");
+          setSummary("浏览器不支持主动读取剪贴板", "请复制图片后直接按 Ctrl+V 粘贴到页面。", "error");
+          els.uploadZone.focus();
+          return;
+        }
+
+        try {
+          const items = await navigator.clipboard.read();
+          for (const item of items) {
+            const type = item.types.find((entry) => entry.startsWith("image/"));
+            if (!type) continue;
+            const blob = await item.getType(type);
+            const extension = type.split("/").pop() || "png";
+            setReferenceFile(new File([blob], `clipboard-reference-${Date.now()}.${extension}`, { type }));
+            return;
+          }
+
+          setStatus("剪贴板无图片", "warn");
+          setSummary("剪贴板没有图片", "请先复制一张图片或截图，再点击粘贴按钮，或者直接按 Ctrl+V。", "warn");
+        } catch (error) {
+          setStatus("粘贴失败", "error");
+          setSummary("读取剪贴板失败", "浏览器可能拦截了主动读取剪贴板。请复制图片后直接按 Ctrl+V 粘贴到页面。", "error");
+          els.uploadZone.focus();
+        }
+      }
+
+      function saveConfig() {
+        const config = configFromForm();
+        localStorage.setItem(storageKey, JSON.stringify({ ...config, apiKey: "", meteredApiKey: "" }));
+        setStatus("配置已保存", "ok");
+      }
+
+      function loadConfig() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+          for (const [key, value] of Object.entries(saved)) {
+            if (!["apiKey", "meteredApiKey"].includes(key) && els[key] && value !== undefined) els[key].value = value;
+          }
+        } catch {
+          localStorage.removeItem(storageKey);
+        }
+        if (!["openai/gpt-image-2", "openai/gpt-image-2-vip"].includes(els.model.value)) {
+          els.model.value = "openai/gpt-image-2";
+        }
+        updateModelHint();
+      }
+      function resetResult() {
+        stopTimer();
+        timedOut = false;
+        els.imageStage.innerHTML = "<span>生成成功后，图片会显示在这里</span>";
+        els.openImageLink.removeAttribute("href");
+        els.downloadImageLink.removeAttribute("href");
+        els.openImageLink.classList.add("disabled");
+        els.downloadImageLink.classList.add("disabled");
+        els.responseOutput.textContent = "{}";
+        clearSummary();
+        setStatus("等待输入");
+      }
+
+      function maskLargeValues(value) {
+        if (Array.isArray(value)) return value.map(maskLargeValues);
+        if (!value || typeof value !== "object") return value;
+        return Object.fromEntries(
+          Object.entries(value).map(([key, item]) => {
+            const lower = key.toLowerCase();
+            if (typeof item === "string" && (lower.includes("base64") || lower.includes("b64") || item.startsWith("data:image/"))) {
+              return [key, `[image data omitted, ${item.length} chars]`];
+            }
+            if (typeof item === "string" && /^https?:\/\//i.test(item) && item.length > 240) {
+              return [key, `${item.slice(0, 240)}...`];
+            }
+            return [key, maskLargeValues(item)];
+          }),
+        );
+      }
+
+      function setResponse(payload) {
+        els.responseOutput.textContent = JSON.stringify(maskLargeValues(payload), null, 2);
+      }
+
+      function looksLikeBase64Image(value) {
+        if (typeof value !== "string") return false;
+        const raw = value.startsWith("data:") ? value.split(",").pop() : value;
+        return raw.length > 2000 && /^[A-Za-z0-9+/=\r\n]+$/.test(raw);
+      }
+
+      function extractImagePayload(value, seen = new Set()) {
+        if (!value) return null;
+        if (typeof value === "string") {
+          if (/^https?:\/\//i.test(value)) return { type: "url", value };
+          if (value.startsWith("data:image/") || looksLikeBase64Image(value)) return { type: "base64", value };
+          return null;
+        }
+        if (typeof value !== "object" || seen.has(value)) return null;
+        seen.add(value);
+
+        for (const key of ["url", "image_url", "imageUrl", "download_url", "downloadUrl"]) {
+          if (typeof value[key] === "string" && value[key]) return { type: "url", value: value[key] };
+        }
+        for (const key of ["b64_json", "base64", "image_base64", "imageBase64", "b64", "data"]) {
+          if (looksLikeBase64Image(value[key])) return { type: "base64", value: value[key] };
+        }
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            const found = extractImagePayload(item, seen);
+            if (found) return found;
+          }
+          return null;
+        }
+        for (const item of Object.values(value)) {
+          const found = extractImagePayload(item, seen);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function mimeFromFormat(format) {
+        if (format === "jpeg") return "image/jpeg";
+        if (format === "webp") return "image/webp";
+        return "image/png";
+      }
+
+      function extensionFromMime(mimeType, fallback) {
+        if (mimeType.includes("jpeg")) return "jpg";
+        if (mimeType.includes("webp")) return "webp";
+        if (mimeType.includes("png")) return "png";
+        return fallback === "jpeg" ? "jpg" : fallback || "png";
+      }
+
+      function renderImage(imagePayload, outputFormat) {
+        const fallbackMime = mimeFromFormat(outputFormat || "png");
+        let src = "";
+        let mime = fallbackMime;
+
+        if (imagePayload.type === "url") {
+          src = imagePayload.value;
+        } else {
+          const value = imagePayload.value;
+          src = value.startsWith("data:image/") ? value : `data:${fallbackMime};base64,${value.replace(/\s/g, "")}`;
+          if (src.startsWith("data:image/")) mime = src.slice(5, src.indexOf(";")) || fallbackMime;
+        }
+
+        const image = new Image();
+        image.alt = "Image2 generated result";
+        image.onload = () => {
+          els.imageStage.replaceChildren(image);
+          els.openImageLink.href = src;
+          els.downloadImageLink.href = src;
+          els.downloadImageLink.download = `image2-result-${Date.now()}.${extensionFromMime(mime, outputFormat || "png")}`;
+          els.openImageLink.classList.remove("disabled");
+          els.downloadImageLink.classList.remove("disabled");
+        };
+        image.onerror = () => {
+          els.imageStage.innerHTML = "<span>接口返回了图片地址，但浏览器无法加载。请点击“打开图片”或查看响应。</span>";
+          els.openImageLink.href = src;
+          els.openImageLink.classList.remove("disabled");
+        };
+        image.src = src;
+      }
+
+      function friendlyError(error) {
+        if (timedOut) return "请求已超过 600 秒，本页面按接口失败处理。";
+        if (error?.name === "AbortError") return "请求已取消。";
+        if (String(error?.message || "").includes("Failed to fetch")) {
+          return "浏览器没有拿到响应。请确认 Base URL 可访问，或检查浏览器跨域/网络拦截。";
+        }
+        return error?.message || "请求异常。";
+      }
+
+      async function generateImage(event) {
+        event.preventDefault();
+        const config = configFromForm();
+        if (!config.apiKey) {
+          setStatus("缺少 Key", "error");
+          setSummary("缺少 API Key", "请输入按量 Key。", "error");
+          els.meteredApiKey.focus();
+          return;
+        }
+        if (!config.prompt) {
+          setStatus("缺少文本", "error");
+          setSummary("缺少生图文本", "请输入要生成的图片描述。", "error");
+          els.prompt.focus();
+          return;
+        }
+
+        resetResult();
+        const startedAt = Date.now();
+        controller = new AbortController();
+        timedOut = false;
+        const timeoutId = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, maxTimeoutMs);
+
+        const body = buildBody(config);
+        const url = targetUrl();
+        const isImageEdit = Boolean(referenceFile);
+        els.generateBtn.disabled = true;
+        els.cancelBtn.disabled = false;
+        setStatus("生成中", "warn");
+        setSummary("请求已发送", `正在调用 ${isImageEdit ? "/v1/images/edits" : "/v1/images/generations"}，最多等待 600 秒。`, "ok");
+        els.imageStage.innerHTML = "<span>正在生成，请等待接口返回</span>";
+        setResponse({
+          request: {
+            url,
+            mode: isImageEdit ? "image-to-image" : "text-to-image",
+            selectedModel: config.model,
+
+            body: isImageEdit ? { ...body, image: `${referenceFile.name || "reference image"} (${fileSizeText(referenceFile.size)})` } : body,
+            token: "[hidden]",
+          },
+        });
+        startTimer(startedAt);
+
+        try {
+          const headers = {
+            Authorization: config.apiKey.toLowerCase().startsWith("bearer ") ? config.apiKey : `Bearer ${config.apiKey}`,
+          };
+          if (!isImageEdit) headers["Content-Type"] = "application/json";
+
+          const response = await fetch(url, {
+            method: "POST",
+            headers,
+            body: isImageEdit ? buildFormData(config) : JSON.stringify(body),
+            signal: controller.signal,
+          });
+
+          const raw = await response.text();
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            data = { raw };
+          }
+
+          setResponse({
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            elapsedMs: Date.now() - startedAt,
+            data,
+          });
+
+          if (!response.ok) {
+            const message = data?.error?.message || data?.message || response.statusText || raw.slice(0, 300);
+            setStatus(`失败 ${response.status}`, "error");
+            setSummary("接口返回失败", message, "error");
+            els.imageStage.innerHTML = "<span>接口返回失败，请查看响应内容</span>";
+            return;
+          }
+
+          const imagePayload = extractImagePayload(data);
+          if (!imagePayload) {
+            setStatus("无图片", "error");
+            setSummary("没有找到图片", "接口返回 200，但响应里没有识别到 url 或 b64_json。", "error");
+            els.imageStage.innerHTML = "<span>没有找到可显示的图片</span>";
+            return;
+          }
+
+          renderImage(imagePayload, config.output_format || "png");
+          setStatus("生成成功", "ok");
+          setSummary("生成成功", `接口 ${Math.round((Date.now() - startedAt) / 1000)} 秒返回，已拿到${imagePayload.type === "url" ? "图片 URL" : "base64 图片"}。`, "ok");
+        } catch (error) {
+          setStatus("请求失败", "error");
+          setSummary("请求失败", friendlyError(error), "error");
+          els.imageStage.innerHTML = "<span>请求失败，请查看响应内容</span>";
+          setResponse({ ok: false, elapsedMs: Date.now() - startedAt, error: friendlyError(error) });
+        } finally {
+          clearTimeout(timeoutId);
+          stopTimer();
+          controller = null;
+          els.generateBtn.disabled = false;
+          els.cancelBtn.disabled = true;
+        }
+      }
+
+      loadConfig();
+      els.form.addEventListener("submit", generateImage);
+      els.model.addEventListener("change", updateModelHint);
+      els.saveBtn.addEventListener("click", saveConfig);
+      els.clearBtn.addEventListener("click", resetResult);
+      els.cancelBtn.addEventListener("click", () => controller?.abort());
+      els.referenceInput.addEventListener("change", () => setReferenceFile(els.referenceInput.files?.[0]));
+      els.pasteReferenceBtn.addEventListener("click", readReferenceFromClipboard);
+      els.clearReferenceBtn.addEventListener("click", clearReferenceFile);
+      els.uploadZone.addEventListener("paste", handleImagePaste);
+      document.addEventListener("paste", handleImagePaste);
+      els.uploadZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        els.uploadZone.classList.add("dragging");
+      });
+      els.uploadZone.addEventListener("dragleave", () => els.uploadZone.classList.remove("dragging"));
+      els.uploadZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        els.uploadZone.classList.remove("dragging");
+        const file = Array.from(event.dataTransfer?.files || []).find((entry) => entry.type.startsWith("image/"));
+        if (file) setReferenceFile(file);
+      });
+    </script>
   </body>
 </html>
